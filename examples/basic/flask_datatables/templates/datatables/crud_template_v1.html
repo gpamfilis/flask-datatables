@@ -1,0 +1,474 @@
+{% from "macros.html" import render_fields_v4 %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+<style type="text/css">
+    .modal-body {
+        max-height:40%;
+        overflow-y: auto;
+        z-index: 100;
+    }
+
+    .h4 {
+        margin-bottom: 1;
+        margin-top:1;
+    }
+
+tfoot input {
+        width: 100%;
+        padding: 3px;
+        box-sizing: border-box;
+    }
+
+.dtpick {
+            position: relative;
+            z-index:10000;
+        }
+.ui-datepicker {
+    background: #333;
+    border: 1px solid #555;
+    color: #EEE;
+
+
+}
+
+</style>
+
+<div class="container">
+    <div class="text-center">
+        <button id="add_item" type="button" class="btn btn-primary" data-toggle="modal" data-target="#add_modal">ADD
+        </button>
+        <button id="edit_item" type="button" class="btn btn-warning" data-toggle="modal" data-target="#edit_modal">
+            EDIT
+        </button>
+        <button id="delete_row" type="button" class="btn btn-danger">DELETE</button>
+    </div>
+</div>
+
+
+
+
+<div class="container">
+
+    <script src="https://datatables.net/release-datatables/media/js/jquery.js"></script>
+    <script src="https://datatables.net/release-datatables/media/js/jquery.dataTables.js"></script>
+    <script src="https://datatables.net/release-datatables/extensions/TableTools/js/dataTables.tableTools.js"></script>
+
+    <!-- <script src="//code.jquery.com/jquery-1.10.2.js"></script> -->
+    <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+
+    <link rel="stylesheet" href="https://datatables.net/release-datatables/media/css/jquery.dataTables.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.12/css/jquery.dataTables.min.css">
+    <link rel="stylesheet"
+          href="https://datatables.net/release-datatables/extensions/TableTools/css/dataTables.tableTools.css">
+
+    <style>
+    td.details-control {
+        background: url('../static/img/details_open.png') no-repeat center center;
+        cursor: pointer;
+    }
+    tr.shown td.details-control {
+        background: url('../static/img/details_close.png') no-repeat center center;
+    }
+    </style>
+
+
+    <style>
+    td.details-control {
+        background: url('../static/img/details_open.png') no-repeat center center;
+        cursor: pointer;
+    }
+    tr.shown td.details-control {
+        background: url('../static/img/details_close.png') no-repeat center center;
+    }
+    </style>
+
+    <table id="example" class="display" cellspacing="0" width="100%">
+        <thead>
+        <tr>
+            {% for header in headers %}
+            <th>{{ header }}</th>
+            {% endfor %}
+        </tr>
+        </thead>
+
+        <tfoot>
+        <tr>
+            {% for header in headers %}
+            <th>{{ header }}</th>
+            {% endfor %}
+        </tr>
+        </tfoot>
+
+        <tbody>
+
+        </tbody>
+    </table>
+</div>
+
+
+<script type="text/javascript">
+
+    $(document).ready(function() {
+
+        // Setup - add a text input to each footer cell
+    $('#example tfoot th').each( function () {
+        var title = $(this).text();
+        $(this).html( '<input type="text" placeholder="Search" />' );
+        <!--$(this).html( '<input type="text" placeholder="Search '+title+'" />' );-->
+    } );
+
+    var fields2 = {{ json_enc|safe }};
+    console.log(fields2);
+    console.log({{ json_enc|safe }});
+    document.getElementById("edit_item").disabled = true;
+    document.getElementById("delete_row").disabled = true;
+
+    var base_url = "{{ api_url }}";
+
+    var url = base_url + "?store_id=" + {{ current_user.id|string }};
+
+    console.log(url)
+
+
+    var table= $('#example').DataTable({
+            "order": [[ "{{ col|safe }}", "asc" ]],
+
+            "ajax":{
+
+            "url": url,
+            "dataSrc" :"items"}
+            ,
+
+            "columns": [
+                        {% for field in fields %}
+                            {"data": "{{ field }}"},
+                        {% endfor %}
+                        ],
+        });
+
+    // Apply the search
+    table.columns().every( function () {
+        var that = this;
+
+        $( 'input', this.footer() ).on( 'keyup change', function () {
+            if ( that.search() !== this.value ) {
+                that
+                    .search( this.value )
+                    .draw();
+            }
+        } );
+    } );
+
+$(function() {
+        $( ".dtpick" ).datepicker({ dateFormat: 'yy-mm-dd'
+         });
+
+
+    });
+
+
+$('#example tbody').on( 'click', 'tr', function () {
+
+        console.log('Clicking on row.');
+
+        if ( $(this).hasClass('selected') ) {
+            console.log('Unselecting');
+            $(this).removeClass('selected');
+            document.getElementById("edit_item").disabled = true;
+            document.getElementById("delete_row").disabled = true;
+            document.getElementById("add_item").disabled = false;
+            // window.history.pushState("object or string", "Title", "{{ route_url|string }}");
+            $("#id").val(null);
+
+        }
+        else {
+            table.$('tr.selected').removeClass('selected');
+            console.log('Selecting');
+            $(this).addClass('selected');
+            document.getElementById("edit_item").disabled = false;
+            document.getElementById("delete_row").disabled = false;
+            document.getElementById("add_item").disabled = true;
+            id = table.row('.selected').data().id;
+            console.log('the data id: ',id);
+            // $("#id").val(id);
+
+            $("#name").val("name");
+            // window.history.pushState("object or string", "Title", "{{ route_url|string }}" +"/"+ id);
+
+        }
+    });
+
+
+
+$('form[name="postform"]').on('submit', function() {
+    // var choice = window.confirm("Are you sure you want to delete this item?");
+
+    console.log('Posting the data');
+    var that = $(this);
+    method = that.attr('method');
+    var data = {};
+
+    that.find('[name]').each(function(index, value){
+    var that = $(this);
+        name = that.attr("name");
+        id = that.attr("id");
+        if (document.getElementById(id).type == 'checkbox') {
+            var checked = document.getElementById(id).checked;
+            data[name] = checked;
+    }else{
+        value=that.val();
+        data[name] = value;
+    }
+    });
+
+    console.log(data);
+    // var vis = document.getElementById('visibilitypost').checked;
+    // data['visibility'] = vis;
+
+    $.ajax({
+        "url": url,
+        "type":method,
+        "data": JSON.stringify(data),
+        'contentType': "application/json; charset=utf-8",
+        success: function(responce){
+            console.log(responce);
+            $('#result').removeClass();
+
+            $('#result').addClass('alert alert-success');
+            $('#result').html('Added the item!');
+
+            table.row.add(responce[0]).draw();
+
+        },
+        error: function(responce){
+            $('#result').removeClass();
+
+            $('#result').addClass('alert alert-danger');
+            $('#result').html('Failed to add the item!');
+
+
+        }
+
+    });
+
+    return false;
+        });
+
+
+$('form[name="putform"]').on('submit', function() {
+    // var choice = window.confirm("Are you sure you want to delete this item?");
+
+    content_id = table.row('.selected').data().id;
+
+    console.log('dfsadfas');
+    var that = $(this);
+    method = that.attr('method');
+    var data = {};
+
+    that.find('[name]').each(function(index, value){
+    var that = $(this);
+        name = that.attr("name");
+        value=that.val();
+        id = that.attr("id");
+        if (document.getElementById(id).type == 'checkbox') {
+            var checked = document.getElementById(id).checked;
+            data[name] = checked;
+    }else{
+        value=that.val();
+        data[name] = value;
+    }
+});
+
+    $.ajax({
+        "url": base_url+"?item_id="+id,
+        "type":method,
+        "data": JSON.stringify(data),
+        'contentType': "application/json; charset=utf-8",
+        success: function(responce){
+
+            console.log(responce);
+
+            $('#result2').removeClass();
+
+            console.log('changing row');
+
+            table.row('.selected').data(responce[0]).draw();//=responce['data'];//.data( responce['data']).draw();
+
+            $('#result2').addClass('alert alert-success');
+
+            $('#result2').html('Changed the item!');
+
+            // table.row.ed (responce[0]).draw();
+
+
+        },
+        error: function(responce){
+
+            $('#result2').removeClass();
+
+            $('#result2').addClass('alert alert-danger');
+
+            $('#result2').html('Failed to chabge the item!');
+
+
+        }
+
+    });
+
+    return false;
+        });
+
+// This handles what happens when click on the buttons. It is the alert to the user.
+
+$('#add_item').click(function(){
+        $('#result').removeClass();
+        $('#result').addClass('alert alert-info');
+        $('#result').html("Please Enter The Item's Data!");
+    });
+
+
+$('#edit_item').click(function(){
+        $('#result2').removeClass();
+        $('#result2').addClass('alert alert-info');
+        $('#result2').html("Please Enter The Item's Data!");
+    });
+
+
+
+// This handles the actions when the modal is closed. Simply return the page to the initial state.
+
+$('#close_modal').click(function(){
+        $('#result').removeClass();
+        $('#result').addClass('alert alert-info');
+        $('#result').html("Please Enter The Item's Data!");
+            table.row('.selected').removeClass('selected');
+            document.getElementById("edit_item").disabled = true;
+            document.getElementById("delete_row").disabled = true;
+            document.getElementById("add_item").disabled = false;
+
+    });
+
+
+$('#close_modal2').click(function(){
+        $('#result').removeClass();
+        $('#result').addClass('alert alert-info');
+        $('#result').html("Please Enter The Item's Data!");
+        table.$('tr.selected').removeClass('selected');
+        document.getElementById("edit_item").disabled = true;
+        document.getElementById("delete_row").disabled = true;
+        document.getElementById("add_item").disabled = false;
+
+    });
+
+
+
+// This populates the form when a row is clicked.
+
+$('#edit_item').click( function () {
+
+    id = table.row('.selected').data().id;
+    console.log('edit item id: ',id);
+    for(count = 0; count < fields2.length; count++){
+        var element_id = fields2[count]+'put';
+        console.log('The element id is: ',element_id);
+
+       if (document.getElementById(element_id).type == 'checkbox') {
+            console.log(element_id);
+            document.getElementById(element_id).checked = table.row('.selected').data()[fields2[count]];
+
+        }else{
+            $("#"+element_id).val(table.row('.selected').data()[fields2[count]]);
+
+        }
+    }
+
+});
+
+
+// this deletes a row when one is clicked.
+$('#delete_row').click( function () {
+
+    content_id = table.row('.selected').data().id;
+    console.log(content_id);
+    var choice = window.confirm("Are you sure you want to delete this item?");
+
+    if (choice==true){
+
+        $.ajax({
+        type: 'DELETE',
+        url: base_url + "?item_id="+id,
+        success: function(data){
+            table.row('.selected').remove().draw( false );
+            document.getElementById("add_item").disabled = false;
+            document.getElementById("edit_item").disabled = true;
+            document.getElementById("delete_row").disabled = true;
+
+        }
+    });}
+
+    else{}
+
+
+});
+
+
+});
+
+</script>
+
+
+<div class='container'>
+
+
+    <div id="add_modal" class="modal fade">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">ADD</h4>
+            </div>
+            <div class="modal-body">
+                <center>
+                    <div id='result'></div>
+                </center>
+
+                <th>{{ render_fields_v4(form, 'postform', 'post') }}</th>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" id='close_modal'>Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    <div id="edit_modal" class="modal fade">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">EDIT</h4>
+                </div>
+                <div class="modal-body">
+                    <center>
+                        <div id='result2'></div>
+                    </center>
+
+                    <th>{{ render_fields_v4(form, 'putform', 'put') }}</th>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" id='close_modal2'>Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+

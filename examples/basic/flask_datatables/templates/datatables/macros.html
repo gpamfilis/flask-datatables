@@ -1,0 +1,133 @@
+{% macro render_field(field) %}
+<dt>{{ field.label }}
+<dd>{{ field(**kwargs)|safe }}
+    {% if field.errors %}
+    <ul class=errors>
+        {% for error in field.errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</dd>
+{% endmacro %}
+
+{% macro render_fields(fields, form_name) %}
+<form target="transFrame" action='/manage/waiter_val' class="ajax" name={{ form_name }} method="post">
+    {% for field in fields %}
+
+    <dt>{{ field.label }}
+    <dd>{{ field(**kwargs)|safe }}
+        {% if field.errors %}
+        <ul class=errors>
+            {% for error in field.errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </dd>
+    {% endfor %}
+
+    <div>
+        <input type="button" onclick="myFunction()" value="Submit form">
+
+    </div>
+</form>
+<iframe style="" name="transFrame" id="transFrame"></iframe>
+{% endmacro %}
+
+
+{% macro render_fields3(form, form_name, method) %}
+<form class="ajax" name={{ form_name }} method={{ method }}>
+    {{ form.hidden_tag() }}
+    {% for field in form if field.widget.input_type != 'hidden' %}
+    <dt>{{ field.label }}</dt>
+    <dd>{{field(id=field.name + method)|safe}}
+        {% if field.errors %}
+        <ul class=errors>
+            {% for error in field.errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </dd>
+    {% endfor %}
+
+</form>
+{% endmacro %}
+
+
+{% macro form_field(name,field) %}
+
+<div class="form-group">
+    <li>
+        <label class="col-sm-2 col-form-label" for="name">{{ name }}</label>
+        <div class="col-sm-10">{{ field }}</div>
+    </li>
+</div>
+
+{% endmacro %}
+
+
+{% macro render_fields_v4(form, form_name, method) %}
+<form class="form-horizontal" role="form" name={{ form_name }} method={{ method }}>
+    {{ form.hidden_tag() }}
+    {% for field in form if field.widget.input_type != 'hidden' %}
+        {% if "date" in field.name %}
+            {{ form_field(field.label, field(id=field.name + method, class="dtpick")|safe) }}
+        {% else %}
+            {{ form_field(field.label, field(id=field.name + method)|safe) }}
+        {% endif %}
+    {% endfor %}
+</form>
+{% endmacro %}
+
+
+{% macro flash() %}
+
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+<ul class=flashes>
+    {% for message in messages %}
+    <li>{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endwith %}
+{% endmacro %}
+
+
+{% macro flash2(messages) %}
+
+{% with messages = messages %}
+{% if messages %}
+<ul class=flashes>
+    {% for message in messages %}
+    <li>{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endwith %}
+{% endmacro %}
+
+
+{% macro render_form44(form, action_url='', action_text='Submit', class_='', btn_class='btn btn-default') -%}
+
+<form method="POST" action="{{ action_url }}" role="form" class="{{ class_ }}">
+    {{ form.hidden_tag() if form.hidden_tag }}
+    {% if caller %}
+    {{ caller() }}
+    {% else %}
+    {% for f in form if f.id != 'csrf_token' %}
+    {% if f.type == 'BooleanField' %}
+    {{ render_checkbox_field(f) }}
+    {% elif f.type == 'RadioField' %}
+    {{ render_radio_field(f) }}
+    {% else %}
+    {{ render_field(f) }}
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+    <!-- <button type="submit" class="{{ btn_class }}">{{ action_text }} </button> -->
+</form>
+{%- endmacro %}
+
